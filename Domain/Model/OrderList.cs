@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 
 namespace Domain.Model
 {
-    class OrderList
+    public sealed class OrderList
     {
+        public IEnumerable<Order> Orders { get; set; }
     }
 }
