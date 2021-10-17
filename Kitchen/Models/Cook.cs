@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Domain.Model
+namespace Kitchen.Models
 {
     public sealed class Cook
     {
