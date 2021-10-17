@@ -14,7 +14,7 @@ namespace Domain.Model
             Name = name;
             PreparationTime = preparationTime;
             Complexity = complexity;
-            Cooking_Apparatus = cookingApparatus;
+            CookingApparatus = cookingApparatus;
         }
         public Guid Id { get; }
 
@@ -24,6 +24,6 @@ namespace Domain.Model
 
         public int Complexity { get; set; }
 
-        public CookingApparatuses Cooking_Apparatus { get; set; }
+        public CookingApparatuses CookingApparatus { get; set; }
     }
 }
