@@ -8,6 +8,6 @@ namespace Kitchen.Models
 {
     public sealed class OrderList
     {
-        public IEnumerable<Order> Orders { get; set; }
+        public IList<Order> Orders { get; set; }
     }
 }

@@ -11,6 +11,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Kitchen.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Kitchen
 {
@@ -26,7 +28,8 @@ namespace Kitchen
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-
+            services.AddDbContext<AppDbContext>(opt =>
+                opt.UseInMemoryDatabase("KitchenDb"));
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
@@ -60,6 +63,8 @@ namespace Kitchen
             {
                 endpoints.MapControllers();
             });
+
+            PrepDb.PrepPopulation(app);
         }
     }
 }

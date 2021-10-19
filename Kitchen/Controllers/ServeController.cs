@@ -2,10 +2,17 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection.Metadata.Ecma335;
+using System.Threading;
 using System.Threading.Tasks;
+using Kitchen.Data;
+using Kitchen.DTOs;
 using Kitchen.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Kitchen.Controllers
 {
@@ -13,42 +20,91 @@ namespace Kitchen.Controllers
     [Route("api/[controller]/[action]")]
     public class ServeController : ControllerBase
     {
-        private readonly ILogger<ServeController> _logger;
-        private readonly Cook[] _cooks;
+        private readonly AppDbContext _context;
 
-        public ServeController(ILogger<ServeController> logger)
+        public ServeController(AppDbContext context)
         {
-            _cooks = new Cook[]
-            {
-                new Cook(), new Cook()
-            };
-            _logger = logger;
+            _context = context;
         }
-
-        [HttpGet]
-        public int Tables()
-        {
-            return new Random().Next(5, 10);
-        }
+        
 
         [HttpPost]
-        public string Order( Order order)
+        public ActionResult<SendOrderDto> Order( Order order)
         {
-            if (!ModelState.IsValid)
+            if (ModelState.IsValid)
             {
-                return "Order not received";
-            }
+                order.ReceivedAt = DateTime.UtcNow;
+                StoreOrder(order);
 
-            while (true)
+                return Ok(PrepareOrder(order).Result);
+            }
+            return BadRequest("Model state is invalid");
+        }
+
+        #region helpers
+
+        public void StoreOrder(Order order)
+        {
+            _context.Orders.Add(order);
+            _context.SaveChanges();
+        }
+
+        public async Task<SendOrderDto> PrepareOrder(Order order)
+        {
+            while (_context.Orders.Any())
             {
-                var cook = _cooks.FirstOrDefault(c => c.IsAvailable);
-                if (cook != null)
+                if (_context.Cooks.Any(c => c.IsAvailable))
                 {
-                    _logger.LogInformation("Order is received");
-                    //cook.PrepareOrder(order);
-                    return "Order recieved";
-                }
+                    var currentPreparedOrder = _context.Orders.Include(o => o.Foods).ToList().OrderByDescending(o =>
+                        o.Foods.Count(f => f.CookingApparatus == CookingApparatuses.None)).ElementAt(0);
+                    
+                    var cook = _context.Cooks.FirstOrDefault(c => c.IsAvailable);
+                    cook.IsAvailable = false;
+                    _context.SaveChanges();
+                    Console.WriteLine($"--> Start preparing order {order.Id}");
+                    foreach (var food in currentPreparedOrder.Foods)
+                    {
+                        if (food.CookingApparatus == CookingApparatuses.None)
+                        {
+                            Console.WriteLine($"--> Start preparing food: {food.Id}");
+                            Thread.Sleep(food.PreparationTime * 100);//preparing food
+                            Console.WriteLine($"-->Finish preparing food: {food.Id}");
+                        }
+                        else
+                        {
+                            while (await _context.CookingApparatuses.FirstOrDefaultAsync(c => c.TypeOfApparatus == food.CookingApparatus) == null)
+                            {
+                                Console.WriteLine($"--> Waiting for {Enum.GetName(food.CookingApparatus.GetType(), food.CookingApparatus)}");
+                            }
+
+                            var cookingApparatus =
+                                _context.CookingApparatuses.FirstOrDefaultAsync(c =>
+                                    c.TypeOfApparatus == food.CookingApparatus).Result;
+                            cookingApparatus.IsFree = false;
+                            _context.SaveChanges();
+                            Console.WriteLine($"--> Start preparing food: {food.Id}");
+                            Thread.Sleep(food.PreparationTime * 100);//preparing food
+                            Console.WriteLine($"-->Finish preparing food: {food.Id}");
+                            cookingApparatus.IsFree = true;
+                            _context.SaveChanges();
+                        }
+                    }
+                    Console.WriteLine($"--> Finish preparing order: {order.Id}");
+
+                    return new SendOrderDto
+                    {
+                        CreatedAt = order.CreatedAt,
+                        Foods = order.Foods,
+                        Id = order.Id,
+                        MaxWaitTime = order.MaxWaitTime,
+                        PreparedIn = DateTime.UtcNow.Subtract(order.ReceivedAt),
+                        Priority = order.Priority,
+                        re
+
+                    }
+                };
             }
         }
+        #endregion
     }
 }

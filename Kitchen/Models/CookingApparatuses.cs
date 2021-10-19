@@ -8,7 +8,8 @@ namespace Kitchen.Models
 {
     public enum CookingApparatuses
     {
-        Stove,
-        Oven
+        Stove = 1,
+        Oven = 2,
+        None = 3
     }
 }

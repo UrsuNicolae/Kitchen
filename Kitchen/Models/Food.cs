@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,22 +9,19 @@ namespace Kitchen.Models
 {
     public sealed class Food
     {
-        public Food(string name, TimeSpan preparationTime, int complexity, CookingApparatuses cookingApparatus)
-        {
-            Id = new Guid();
-            Name = name;
-            PreparationTime = preparationTime;
-            Complexity = complexity;
-            CookingApparatus = cookingApparatus;
-        }
-        public Guid Id { get; }
+        [Required]
+        public int Id { get; set; }
 
+        [Required]
         public string Name { get; set; }
 
-        public TimeSpan PreparationTime { get; set; }
+        [Required]
+        public int PreparationTime { get; set; }
 
+        [Required]
         public int Complexity { get; set; }
 
+        [Required]
         public CookingApparatuses CookingApparatus { get; set; }
     }
 }
