@@ -26,30 +26,30 @@ namespace Kitchen.Controllers
         {
             _context = context;
         }
-        
 
         [HttpPost]
-        public ActionResult<SendOrderDto> Order( Order order)
+        public async Task<ActionResult> Order(Order order)
         {
             if (ModelState.IsValid)
             {
+                Console.WriteLine($"--> Order {order.Id} received at {DateTime.UtcNow}.");
                 order.ReceivedAt = DateTime.UtcNow;
                 StoreOrder(order);
 
-                return Ok(PrepareOrder(order).Result);
+                return Ok(PrepareOrder(order));
             }
             return BadRequest("Model state is invalid");
         }
 
         #region helpers
 
-        public void StoreOrder(Order order)
+        private void StoreOrder(Order order)
         {
             _context.Orders.Add(order);
             _context.SaveChanges();
         }
 
-        public async Task<SendOrderDto> PrepareOrder(Order order)
+        private async Task<SendOrderDto> PrepareOrder(Order order)
         {
             while (_context.Orders.Any())
             {
@@ -90,8 +90,9 @@ namespace Kitchen.Controllers
                         }
                     }
                     Console.WriteLine($"--> Finish preparing order: {order.Id}");
-
-                    return new SendOrderDto
+                    cook.IsAvailable = true;
+                    _context.SaveChanges();
+                    var orderToReturn = new SendOrderDto
                     {
                         CreatedAt = order.CreatedAt,
                         Foods = order.Foods,
@@ -99,11 +100,16 @@ namespace Kitchen.Controllers
                         MaxWaitTime = order.MaxWaitTime,
                         PreparedIn = DateTime.UtcNow.Subtract(order.ReceivedAt),
                         Priority = order.Priority,
-                        re
+                        ReceivedAt = order.ReceivedAt
+                    };
 
-                    }
+                    _context.Orders.Remove(order);
+                    _context.SaveChanges();
+                    return orderToReturn;
                 };
             }
+
+            return new SendOrderDto();
         }
         #endregion
     }

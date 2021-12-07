@@ -122,14 +122,17 @@ namespace Kitchen.Data
                 {
                     new ()
                     {
+                        Id = 1,
                         IsAvailable = true
                     },
                     new ()
                     {
+                        Id = 2,
                         IsAvailable = true
                     },
                     new ()
                     {
+                        Id = 3,
                         IsAvailable = true
                     }
                 });

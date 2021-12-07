@@ -64,6 +64,8 @@ namespace Kitchen
                 endpoints.MapControllers();
             });
 
+            
+
             PrepDb.PrepPopulation(app);
         }
     }
