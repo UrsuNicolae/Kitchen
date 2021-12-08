@@ -34,19 +34,19 @@ namespace Kitchen.Controllers
             {
                 Console.WriteLine($"--> Order {order.Id} received at {DateTime.UtcNow}.");
                 order.ReceivedAt = DateTime.UtcNow;
-                StoreOrder(order);
+                await StoreOrder(order);
 
-                return Ok(PrepareOrder(order));
+                return Ok(await PrepareOrder(order));
             }
             return BadRequest("Model state is invalid");
         }
 
         #region helpers
 
-        private void StoreOrder(Order order)
+        private async Task StoreOrder(Order order)
         {
-            _context.Orders.Add(order);
-            _context.SaveChanges();
+            await _context.Orders.AddAsync(order);
+            await _context.SaveChangesAsync();
         }
 
         private async Task<SendOrderDto> PrepareOrder(Order order)
@@ -60,7 +60,7 @@ namespace Kitchen.Controllers
                     
                     var cook = _context.Cooks.FirstOrDefault(c => c.IsAvailable);
                     cook.IsAvailable = false;
-                    _context.SaveChanges();
+                    await _context.SaveChangesAsync();
                     Console.WriteLine($"--> Start preparing order {order.Id}");
                     foreach (var food in currentPreparedOrder.Foods)
                     {
@@ -81,17 +81,17 @@ namespace Kitchen.Controllers
                                 _context.CookingApparatuses.FirstOrDefaultAsync(c =>
                                     c.TypeOfApparatus == food.CookingApparatus).Result;
                             cookingApparatus.IsFree = false;
-                            _context.SaveChanges();
+                            await _context.SaveChangesAsync();
                             Console.WriteLine($"--> Start preparing food: {food.Id}");
                             Thread.Sleep(food.PreparationTime * 100);//preparing food
                             Console.WriteLine($"-->Finish preparing food: {food.Id}");
                             cookingApparatus.IsFree = true;
-                            _context.SaveChanges();
+                            await _context.SaveChangesAsync();
                         }
                     }
                     Console.WriteLine($"--> Finish preparing order: {order.Id}");
                     cook.IsAvailable = true;
-                    _context.SaveChanges();
+                    await _context.SaveChangesAsync();
                     var orderToReturn = new SendOrderDto
                     {
                         CreatedAt = order.CreatedAt,
@@ -104,7 +104,7 @@ namespace Kitchen.Controllers
                     };
 
                     _context.Orders.Remove(order);
-                    _context.SaveChanges();
+                    await _context.SaveChangesAsync();
                     return orderToReturn;
                 };
             }

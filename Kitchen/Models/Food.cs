@@ -9,6 +9,8 @@ namespace Kitchen.Models
 {
     public sealed class Food
     {
+        [Key]
+        public Guid Key { get; set; } = new Guid();
         [Required]
         public int Id { get; set; }
 
