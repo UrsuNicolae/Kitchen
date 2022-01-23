@@ -123,17 +123,30 @@ namespace Kitchen.Data
                     new ()
                     {
                         Id = 1,
-                        IsAvailable = true
+                        IsAvailable = true,
+                        Rank = 3,
+                        Proficiency = 4,
                     },
                     new ()
                     {
                         Id = 2,
-                        IsAvailable = true
+                        IsAvailable = true,
+                        Rank = 2,
+                        Proficiency = 3
                     },
                     new ()
                     {
                         Id = 3,
-                        IsAvailable = true
+                        IsAvailable = true,
+                        Rank = 2,
+                        Proficiency = 2
+                    },
+                    new ()
+                    {
+                        Id = 4,
+                        IsAvailable = true,
+                        Rank = 1,
+                        Proficiency = 2
                     }
                 });
             }
@@ -151,6 +164,16 @@ namespace Kitchen.Data
                     new ()
                     {
                         TypeOfApparatus = CookingApparatuses.Oven,
+                        IsFree = true
+                    },
+                    new ()
+                    {
+                        TypeOfApparatus = CookingApparatuses.Oven,
+                        IsFree = true
+                    },
+                    new ()
+                    {
+                        TypeOfApparatus = CookingApparatuses.Stove,
                         IsFree = true
                     },
                     new ()

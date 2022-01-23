@@ -29,7 +29,7 @@ namespace Kitchen
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<AppDbContext>(opt =>
-                opt.UseInMemoryDatabase("KitchenDb"));
+                opt.UseInMemoryDatabase("KitchenDb"), ServiceLifetime.Singleton);
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
@@ -53,7 +53,7 @@ namespace Kitchen
                 .AllowAnyHeader()
             );
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
 
             app.UseRouting();
 

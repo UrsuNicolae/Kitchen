@@ -21,10 +21,12 @@ namespace Kitchen.Controllers
     public class ServeController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly DbContextOptions<AppDbContext> _contextOptions;
 
-        public ServeController(AppDbContext context)
+        public ServeController(AppDbContext context, DbContextOptions<AppDbContext> contextOptions)
         {
             _context = context;
+            _contextOptions = contextOptions;
         }
 
         [HttpPost]
@@ -57,55 +59,91 @@ namespace Kitchen.Controllers
                 {
                     var currentPreparedOrder = _context.Orders.Include(o => o.Foods).ToList().OrderByDescending(o =>
                         o.Foods.Count(f => f.CookingApparatus == CookingApparatuses.None)).ElementAt(0);
-                    
-                    var cook = _context.Cooks.FirstOrDefault(c => c.IsAvailable);
-                    cook.IsAvailable = false;
-                    await _context.SaveChangesAsync();
-                    Console.WriteLine($"--> Start preparing order {order.Id}");
-                    foreach (var food in currentPreparedOrder.Foods)
+
+                    var foodComplexity = 0;
+                    foreach (var food in order.Foods)
                     {
-                        if (food.CookingApparatus == CookingApparatuses.None)
+                        if (food.Complexity > foodComplexity) foodComplexity = food.Complexity;
+                    }
+                    
+                    var cook = await _context.Cooks.FirstOrDefaultAsync(c => c.IsAvailable && c.Rank >= foodComplexity);
+                    while (cook != null)
+                    {
+                        cook.IsAvailable = false;
+                        var proficiency = cook.Proficiency;
+                        await _context.SaveChangesAsync();
+                        Console.WriteLine($"--> Start preparing order {order.Id}");
+                        Parallel.ForEach(currentPreparedOrder.Foods, async food =>
                         {
-                            Console.WriteLine($"--> Start preparing food: {food.Id}");
-                            Thread.Sleep(food.PreparationTime * 100);//preparing food
-                            Console.WriteLine($"-->Finish preparing food: {food.Id}");
-                        }
-                        else
-                        {
-                            while (await _context.CookingApparatuses.FirstOrDefaultAsync(c => c.TypeOfApparatus == food.CookingApparatus) == null)
+                            using (var ctx = new AppDbContext(_contextOptions))
                             {
-                                Console.WriteLine($"--> Waiting for {Enum.GetName(food.CookingApparatus.GetType(), food.CookingApparatus)}");
+
+                                if (food.CookingApparatus == CookingApparatuses.None)
+                                {
+                                    Console.WriteLine($"--> Start preparing food: {food.Name}");
+                                    if (proficiency == 0)
+                                    {
+                                        Thread.Sleep(food.PreparationTime * 100); //preparing food
+                                        proficiency = cook.Proficiency;
+                                    }
+                                    else
+                                    {
+                                        proficiency--;
+                                    }
+
+                                    Console.WriteLine($"-->Finish preparing food: {food.Name}");
+                                }
+                                else
+                                {
+                                    while (await ctx.CookingApparatuses.FirstOrDefaultAsync(c =>
+                                        c.TypeOfApparatus == food.CookingApparatus) == null)
+                                    {
+                                        Console.WriteLine(
+                                            $"--> Waiting for {Enum.GetName(food.CookingApparatus.GetType(), food.CookingApparatus)}");
+                                    }
+
+                                    var cookingApparatus =
+                                        await ctx.CookingApparatuses.FirstOrDefaultAsync(c =>
+                                            c.TypeOfApparatus == food.CookingApparatus);
+                                    cookingApparatus.IsFree = false;
+                                    await ctx.SaveChangesAsync();
+                                    Console.WriteLine($"--> Start preparing food: {food.Name}");
+                                    if (proficiency == 0)
+                                    {
+                                        Thread.Sleep(food.PreparationTime * 100); //preparing food
+                                        proficiency = cook.Proficiency;
+                                    }
+                                    else
+                                    {
+                                        proficiency--;
+                                    }
+
+                                    Thread.Sleep(food.PreparationTime * 100); //preparing food
+                                    Console.WriteLine($"-->Finish preparing food: {food.Name}");
+                                    cookingApparatus.IsFree = true;
+                                    await ctx.SaveChangesAsync();
+                                }
                             }
 
-                            var cookingApparatus =
-                                _context.CookingApparatuses.FirstOrDefaultAsync(c =>
-                                    c.TypeOfApparatus == food.CookingApparatus).Result;
-                            cookingApparatus.IsFree = false;
-                            await _context.SaveChangesAsync();
-                            Console.WriteLine($"--> Start preparing food: {food.Id}");
-                            Thread.Sleep(food.PreparationTime * 100);//preparing food
-                            Console.WriteLine($"-->Finish preparing food: {food.Id}");
-                            cookingApparatus.IsFree = true;
-                            await _context.SaveChangesAsync();
-                        }
-                    }
-                    Console.WriteLine($"--> Finish preparing order: {order.Id}");
-                    cook.IsAvailable = true;
-                    await _context.SaveChangesAsync();
-                    var orderToReturn = new SendOrderDto
-                    {
-                        CreatedAt = order.CreatedAt,
-                        Foods = order.Foods,
-                        Id = order.Id,
-                        MaxWaitTime = order.MaxWaitTime,
-                        PreparedIn = DateTime.UtcNow.Subtract(order.ReceivedAt),
-                        Priority = order.Priority,
-                        ReceivedAt = order.ReceivedAt
-                    };
+                        });
+                        Console.WriteLine($"--> Finish preparing order: {order.Id}");
+                        cook.IsAvailable = true;
+                        await _context.SaveChangesAsync();
+                        var orderToReturn = new SendOrderDto
+                        {
+                            CreatedAt = order.CreatedAt,
+                            Foods = order.Foods,
+                            Id = order.Id,
+                            MaxWaitTime = order.MaxWaitTime,
+                            PreparedIn = DateTime.UtcNow.Subtract(order.ReceivedAt),
+                            Priority = order.Priority,
+                            ReceivedAt = order.ReceivedAt
+                        };
 
-                    _context.Orders.Remove(order);
-                    await _context.SaveChangesAsync();
-                    return orderToReturn;
+                        _context.Orders.Remove(order);
+                        await _context.SaveChangesAsync();
+                        return orderToReturn;
+                    }
                 };
             }
 

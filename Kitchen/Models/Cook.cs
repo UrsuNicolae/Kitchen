@@ -14,5 +14,9 @@ namespace Kitchen.Models
         public int Id { get; set; }
 
         public bool IsAvailable { get; set; }
+
+        public int Rank { get; set; }
+
+        public int Proficiency { get; set; }
     }
 }
