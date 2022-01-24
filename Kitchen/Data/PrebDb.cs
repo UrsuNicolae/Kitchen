@@ -14,17 +14,17 @@ namespace Kitchen.Data
         {
             using (var serviceScope = app.ApplicationServices.CreateScope())
             {
-                SeedData(serviceScope.ServiceProvider.GetService<AppDbContext>());
+                SeedData();
             }
         }
 
-        private static void SeedData(AppDbContext context)
+        private static void SeedData()
         {
-            if (!context.Foods.Any())
+            if (!StaticContext.Foods.Any())
             {
                 Console.WriteLine("--> Seeding foods...");
 
-                context.Foods.AddRange(
+                StaticContext.Foods.AddRange(
                     new List<Food>{
         new()
         {
@@ -114,11 +114,11 @@ namespace Kitchen.Data
                 Console.WriteLine("--> We already have foods");
             }
 
-            if (!context.Cooks.Any())
+            if (!StaticContext.Cooks.Any())
             {
                 Console.WriteLine("--> Seeding cooks...");
 
-                context.Cooks.AddRange(new List<Cook>
+                StaticContext.Cooks.AddRange(new List<Cook>
                 {
                     new ()
                     {
@@ -155,11 +155,11 @@ namespace Kitchen.Data
                 Console.WriteLine("--> We already have cooks");
             }
 
-            if (!context.CookingApparatuses.Any())
+            if (!StaticContext.CookingApparatuses.Any())
             {
                 Console.WriteLine("--> Seeding CookingApparatuses...");
 
-                context.CookingApparatuses.AddRange(new List<CookingApparatus>
+                StaticContext.CookingApparatuses.AddRange(new List<CookingApparatus>
                 {
                     new ()
                     {
@@ -187,8 +187,6 @@ namespace Kitchen.Data
             {
                 Console.WriteLine("--> We already have CookingApparatuses");
             }
-
-            context.SaveChanges();
         }
     }
 }
