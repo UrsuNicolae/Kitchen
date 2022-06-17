@@ -52,7 +52,8 @@ namespace Kitchen.Controllers
             {
                 if (StaticContext.Cooks.Any(c => c.IsAvailable))
                 {
-                    var order = StaticContext.Orders.ToList().ElementAt(0);
+                    StaticContext.orderNr++;
+                    var order = StaticContext.Orders.ElementAt(StaticContext.orderNr);
                     Console.WriteLine($"--> Start preparing order {order.Id}");
                     var foodComplexity = 0;
                     foreach (var food in order.Foods)
@@ -65,41 +66,36 @@ namespace Kitchen.Controllers
                         if (food.Complexity > foodComplexity) foodComplexity = food.Complexity;
                     }
 
-                    while(StaticContext.FoodsToPrepare.Any(f => f.OrderId == order.Id))
-                    {
-                        foreach(var food in StaticContext.FoodsToPrepare)
-                        {
-                            if (food.IsPreparing)
-                            {
-                                StaticContext.FoodsToPrepare.Remove(food);
-                            }
 
-                            Cook cook = null;
-                            while(cook == null)
+                    foreach (var food in StaticContext.FoodsToPrepare)
+                    {
+                        Cook cook = null;
+                        while (cook == null)
+                        {
+                            cook = StaticContext.Cooks.FirstOrDefault(c => c.IsAvailable && c.Rank >= food.Food.Complexity);
+                        }
+                        food.IsPreparing = true;
+                        cook.StartPreparing(food);
+                        StaticContext.FoodsToPrepare.Remove(food);
+                        Console.WriteLine($"--> Finish preparing order: {order.Id}");
+                        if (StaticContext.FoodsToPrepare.Count / 2 == 0)
+                        {
+                            return new SendOrderDto
                             {
-                                cook = StaticContext.Cooks.FirstOrDefault(c => c.IsAvailable && c.Rank >= food.Food.Complexity );
-                            }
-                            food.IsPreparing = true;
-                            cook.StartPreparing(food);
+                                CreatedAt = order.CreatedAt,
+                                Foods = order.Foods,
+                                Id = order.Id,
+                                MaxWaitTime = order.MaxWaitTime,
+                                PreparedIn = DateTime.UtcNow.Subtract(order.ReceivedAt),
+                                Priority = order.Priority,
+                                ReceivedAt = order.ReceivedAt
+                            };
                         }
                     }
 
-                    Console.WriteLine($"--> Finish preparing order: {order.Id}");
-                    return new SendOrderDto
-                    {
-                        CreatedAt = order.CreatedAt,
-                        Foods = order.Foods,
-                        Id = order.Id,
-                        MaxWaitTime = order.MaxWaitTime,
-                        PreparedIn = DateTime.UtcNow.Subtract(order.ReceivedAt),
-                        Priority = order.Priority,
-                        ReceivedAt = order.ReceivedAt
-                    };
-                    //var cook = StaticContext.Cooks.FirstOrDefault(c => c.IsAvailable && c.Rank >= foodComplexity);
-                    //if (cook != null)
-                    //{
-                    //    return cook.StartPreparing(order);
-                    //}
+
+                    
+                    return new SendOrderDto();
                 };
             }
 

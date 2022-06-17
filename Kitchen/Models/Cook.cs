@@ -24,7 +24,7 @@ namespace Kitchen.Models
 
         public void StartPreparing(OrderFood orderFood)
         {
-            new Thread(() =>
+            var thread = new Thread(() =>
             {
                 var food = orderFood.Food;
                 Thread.CurrentThread.IsBackground = true;
@@ -34,7 +34,7 @@ namespace Kitchen.Models
 
                 if (food.CookingApparatus == CookingApparatuses.None)
                 {
-                    Console.WriteLine($"--> Start preparing food: {food.Name} ");
+                    Console.WriteLine($"--> Start preparing food: {food.Name}");
                     if (proficiency == 0)
                     {
                         Thread.Sleep(food.PreparationTime * 100); //preparing food
@@ -45,7 +45,7 @@ namespace Kitchen.Models
                         proficiency--;
                     }
 
-                    Console.WriteLine($"-->Finish preparing food: {food.Name} ");
+                    Console.WriteLine($"-->Finish preparing food: {food.Name}");
                 }
                 else
                 {
@@ -75,7 +75,9 @@ namespace Kitchen.Models
                     cookingApparatus.IsFree = true;
                 }
                 IsAvailable = true;
-            }).Start();
+            });
+            thread.Name = Guid.NewGuid().ToString();
+            thread.Start();
         }
     }
 }
