@@ -28,8 +28,6 @@ namespace Kitchen
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<AppDbContext>(opt =>
-                opt.UseInMemoryDatabase("KitchenDb"), ServiceLifetime.Singleton);
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
@@ -64,7 +62,7 @@ namespace Kitchen
                 endpoints.MapControllers();
             });
 
-            
+
 
             PrepDb.PrepPopulation(app);
         }
