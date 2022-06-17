@@ -16,5 +16,7 @@ namespace Kitchen.Data
 
         public static ThreadSafeListWithLock<CookingApparatus> CookingApparatuses { get; set; } =
             new ThreadSafeListWithLock<CookingApparatus>();
+
+        public static ThreadSafeListWithLock<OrderFood> FoodsToPrepare { get; set; } = new ThreadSafeListWithLock<OrderFood>();
     }
 }

@@ -22,74 +22,60 @@ namespace Kitchen.Models
         public int Proficiency { get; set; }
 
 
-        public SendOrderDto StartPreparing(Order curentOrder)
+        public void StartPreparing(OrderFood orderFood)
         {
-            SendOrderDto orderToReturn = null;
             new Thread(() =>
             {
+                var food = orderFood.Food;
                 Thread.CurrentThread.IsBackground = true;
                 IsAvailable = false;
                 var proficiency = Proficiency;
-                Console.WriteLine($"--> Start preparing order {curentOrder.Id}");
-                Parallel.ForEach(curentOrder.Foods, food =>
-                {
-                    if (food.CookingApparatus == CookingApparatuses.None)
-                    {
-                        Console.WriteLine($"--> Start preparing food: {food.Name}");
-                        if (proficiency == 0)
-                        {
-                            Thread.Sleep(food.PreparationTime * 100); //preparing food
-                            proficiency = Proficiency;
-                        }
-                        else
-                        {
-                            proficiency--;
-                        }
 
-                        Console.WriteLine($"-->Finish preparing food: {food.Name}");
+
+                if (food.CookingApparatus == CookingApparatuses.None)
+                {
+                    Console.WriteLine($"--> Start preparing food: {food.Name} ");
+                    if (proficiency == 0)
+                    {
+                        Thread.Sleep(food.PreparationTime * 100); //preparing food
+                        proficiency = Proficiency;
                     }
                     else
                     {
-                        while (StaticContext.CookingApparatuses.FirstOrDefault(c =>
-                                        c.TypeOfApparatus == food.CookingApparatus) == null)
-                        {
-                            Console.WriteLine(
-                                            $"--> Waiting for {Enum.GetName(food.CookingApparatus.GetType(), food.CookingApparatus)}");
-                        }
-
-                        var cookingApparatus = StaticContext.CookingApparatuses.FirstOrDefault(c =>
-                                            c.TypeOfApparatus == food.CookingApparatus);
-                        cookingApparatus.IsFree = false;
-                        Console.WriteLine($"--> Start preparing food: {food.Name}");
-                        if (proficiency == 0)
-                        {
-                            Thread.Sleep(food.PreparationTime * 100); //preparing food
-                            proficiency = Proficiency;
-                        }
-                        else
-                        {
-                            proficiency--;
-                        }
-
-                        Thread.Sleep(food.PreparationTime * 100); //preparing food
-                        Console.WriteLine($"-->Finish preparing food: {food.Name}");
-                        cookingApparatus.IsFree = true;
+                        proficiency--;
                     }
-                });
-                Console.WriteLine($"--> Finish preparing order: {curentOrder.Id}");
-                IsAvailable = true;
-                orderToReturn = new SendOrderDto
+
+                    Console.WriteLine($"-->Finish preparing food: {food.Name} ");
+                }
+                else
                 {
-                    CreatedAt = curentOrder.CreatedAt,
-                    Foods = curentOrder.Foods,
-                    Id = curentOrder.Id,
-                    MaxWaitTime = curentOrder.MaxWaitTime,
-                    PreparedIn = DateTime.UtcNow.Subtract(curentOrder.ReceivedAt),
-                    Priority = curentOrder.Priority,
-                    ReceivedAt = curentOrder.ReceivedAt
-                };
+                    bool available = false;
+                    CookingApparatus cookingApparatus = null;
+                    while (!available)
+                    {
+                        cookingApparatus = StaticContext.CookingApparatuses.FirstOrDefault(c =>
+                                        c.TypeOfApparatus == food.CookingApparatus && c.IsFree);
+                        available = cookingApparatus != null;
+                    }
+                    cookingApparatus.IsFree = false;
+
+                    Console.WriteLine($"--> Start preparing food: {food.Name}, on {cookingApparatus.TypeOfApparatus.ToString()}");
+                    if (proficiency == 0)
+                    {
+                        Thread.Sleep(food.PreparationTime * 100); //preparing food
+                        proficiency = Proficiency;
+                    }
+                    else
+                    {
+                        proficiency--;
+                    }
+
+                    Thread.Sleep(food.PreparationTime * 100); //preparing food
+                    Console.WriteLine($"-->Finish preparing food: {food.Name}, on {cookingApparatus.TypeOfApparatus.ToString()}");
+                    cookingApparatus.IsFree = true;
+                }
+                IsAvailable = true;
             }).Start();
-            return orderToReturn;
         }
     }
 }

@@ -19,6 +19,7 @@ namespace Kitchen.Models
 
         // Other Elements of IList implementation
 
+
         public IEnumerator<T> GetEnumerator()
         {
             return Clone().GetEnumerator();
@@ -131,6 +132,17 @@ namespace Kitchen.Models
             }
 
             return (itemIndex);
+        }
+
+        public T FirstOrDefault(Func<T, bool> func)
+        {
+            T result = default(T);
+            lock ((_lockList))
+            {
+                result = _internalList.FirstOrDefault(func);
+            }
+
+            return result;
         }
 
         public void Insert(int index, T item)
