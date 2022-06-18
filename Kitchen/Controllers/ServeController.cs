@@ -30,29 +30,28 @@ namespace Kitchen.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> Order(Order order)
+        public async Task Order(OrderWithIds order)
         {
             if (ModelState.IsValid)
             {
-                Console.WriteLine($"--> Order {order.Id} received at {DateTime.UtcNow}.");
-                order.ReceivedAt = DateTime.UtcNow;
+                Console.WriteLine($"--> Order {order.Order.Id} received at {DateTime.UtcNow}.");
+                order.Order.ReceivedAt = DateTime.UtcNow;
                 await StoreOrder(order);
 
-                return Ok(PrepareOrder());
+                PrepareOrder();
             }
-            return BadRequest("Model state is invalid");
         }
 
         #region helpers
 
-        private async Task StoreOrder(Order order)
+        private async Task StoreOrder(OrderWithIds order)
         {
             StaticContext.Orders.Add(order);
         }
 
 
 
-        private async Task<SendOrderDto> PrepareOrder()
+        private async Task PrepareOrder()
         {
             while (StaticContext.Orders.Any())
             {
@@ -60,38 +59,33 @@ namespace Kitchen.Controllers
                 {
                     StaticContext.orderNr++;
                     var order = StaticContext.Orders.ElementAt(StaticContext.orderNr);
-                    Console.WriteLine($"--> Start preparing order {order.Id}");
+                    Console.WriteLine($"--> Start preparing order {order.Order.Id}");
                     var foodComplexity = 0;
-                    foreach (var food in order.Foods)
+                    foreach (var food in order.Order.Foods)
                     {
                         StaticContext.FoodsToPrepare.Add(new OrderFood
                         {
                             Food = food,
-                            OrderId = order.Id
+                            OrderId = order.Order.Id
                         });
                         if (food.Complexity > foodComplexity) foodComplexity = food.Complexity;
                     }
 
                     var orderConfirmation = new OrderDetails
                     {
-                        Id = order.Id,
+                        Id = order.Order.Id,
                         WaiterId = order.WaiterId,
                         TableId = order.TableId,
-                        Priority = order.Priority,
-                        MaxWaitTime = order.MaxWaitTime,
+                        Priority = order.Order.Priority,
+                        MaxWaitTime = order.Order.MaxWaitTime,
                         PickUpTime = DateTime.UtcNow
                     };
 
-
-
-                    foreach (var food in StaticContext.FoodsToPrepare.Where(f => f.OrderId == order.Id))
+                    foreach (var food in StaticContext.FoodsToPrepare.Where(f => f.OrderId == order.Order.Id))
                     {
                         orderConfirmation.Items.Add(food.Food.Id);
                         orderConfirmation.CookingDetails.Add((food.Food.Id, StaticContext.Cooks.FirstOrDefault(c => c.Rank >= food.Food.Complexity).Id));
                     }
-
-                    var client = new HttpDataClient(_httpClient);
-                    client.SendOrder(orderConfirmation);
 
                     foreach (var food in StaticContext.FoodsToPrepare)
                     {
@@ -104,29 +98,28 @@ namespace Kitchen.Controllers
                         food.IsPreparing = true;
                         cook.StartPreparing(food);
                         StaticContext.FoodsToPrepare.Remove(food);
-                        Console.WriteLine($"--> Finish preparing order: {order.Id}");
-                        if (StaticContext.FoodsToPrepare.All(f => f.OrderId != order.Id))
-                        {
-                            return new SendOrderDto
-                            {
-                                CreatedAt = order.CreatedAt,
-                                Foods = order.Foods,
-                                Id = order.Id,
-                                MaxWaitTime = order.MaxWaitTime,
-                                PreparedIn = DateTime.UtcNow.Subtract(order.ReceivedAt),
-                                Priority = order.Priority,
-                                ReceivedAt = order.ReceivedAt
-                            };
-                        }
+                        Console.WriteLine($"--> Finish preparing order: {order.Order.Id}");
+                        var client = new HttpDataClient(_httpClient);
+                        client.SendOrder(orderConfirmation);
+                        //if (StaticContext.FoodsToPrepare.All(f => f.OrderId != order.Id))
+                        //{
+                        //    var client = new HttpDataClient(_httpClient);
+                        //    client.SendOrder(orderConfirmation);
+                        //    //return new SendOrderDto
+                        //    //{
+                        //    //    CreatedAt = order.CreatedAt,
+                        //    //    Foods = order.Foods,
+                        //    //    Id = order.Id,
+                        //    //    MaxWaitTime = order.MaxWaitTime,
+                        //    //    PreparedIn = DateTime.UtcNow.Subtract(order.ReceivedAt),
+                        //    //    Priority = order.Priority,
+                        //    //    ReceivedAt = order.ReceivedAt
+                        //    //};
+                        //}
                     }
 
-
-
-                    return new SendOrderDto();
                 };
             }
-
-            return new SendOrderDto();
         }
         #endregion
     }

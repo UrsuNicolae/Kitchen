@@ -8,7 +8,7 @@ namespace Kitchen.Data
 {
     public static class StaticContext
     {
-        public static ThreadSafeListWithLock<Order> Orders { get; set; } = new ThreadSafeListWithLock<Order>();
+        public static ThreadSafeListWithLock<OrderWithIds> Orders { get; set; } = new ThreadSafeListWithLock<OrderWithIds>();
 
         public static ThreadSafeListWithLock<Food> Foods { get; set; } = new ThreadSafeListWithLock<Food>();
 
