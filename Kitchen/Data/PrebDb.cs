@@ -124,7 +124,7 @@ namespace Kitchen.Data
                     {
                         Id = 1,
                         IsAvailable = true,
-                        Rank = 3,
+                        Rank = 1,
                         Proficiency = 4,
                     },
                     new ()
@@ -145,7 +145,7 @@ namespace Kitchen.Data
                     {
                         Id = 4,
                         IsAvailable = true,
-                        Rank = 1,
+                        Rank = 3,
                         Proficiency = 2
                     }
                 });

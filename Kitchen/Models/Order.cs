@@ -26,5 +26,9 @@ namespace Kitchen.Models
 
         [Required]
         public DateTime ReceivedAt { get; set; }
+
+        public Guid WaiterId { get; set; }
+
+        public Guid TableId { get; set; }
     }
 }

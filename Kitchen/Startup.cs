@@ -29,11 +29,17 @@ namespace Kitchen
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+            services.AddControllersWithViews()
+    .AddNewtonsoftJson(options =>
+    options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
+);
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Kitchen", Version = "v1" });
             });
             services.AddCors();
+
+            services.AddHttpClient("Kitchen");
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

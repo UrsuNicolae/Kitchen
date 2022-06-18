@@ -13,6 +13,9 @@ using Kitchen.Data;
 using Kitchen.DTOs;
 using Kitchen.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Http;
+using Newtonsoft.Json;
+using System.Text;
 
 namespace Kitchen.Controllers
 {
@@ -20,9 +23,10 @@ namespace Kitchen.Controllers
     [Route("api/[controller]/[action]")]
     public class ServeController : ControllerBase
     {
-
-        public ServeController()
+        private readonly HttpClient _httpClient;
+        public ServeController(HttpClient httpClient)
         {
+            _httpClient = httpClient;
         }
 
         [HttpPost]
@@ -46,7 +50,9 @@ namespace Kitchen.Controllers
             StaticContext.Orders.Add(order);
         }
 
-        private SendOrderDto PrepareOrder()
+
+
+        private async Task<SendOrderDto> PrepareOrder()
         {
             while (StaticContext.Orders.Any())
             {
@@ -66,6 +72,26 @@ namespace Kitchen.Controllers
                         if (food.Complexity > foodComplexity) foodComplexity = food.Complexity;
                     }
 
+                    var orderConfirmation = new OrderDetails
+                    {
+                        Id = order.Id,
+                        WaiterId = order.WaiterId,
+                        TableId = order.TableId,
+                        Priority = order.Priority,
+                        MaxWaitTime = order.MaxWaitTime,
+                        PickUpTime = DateTime.UtcNow
+                    };
+
+
+
+                    foreach (var food in StaticContext.FoodsToPrepare.Where(f => f.OrderId == order.Id))
+                    {
+                        orderConfirmation.Items.Add(food.Food.Id);
+                        orderConfirmation.CookingDetails.Add((food.Food.Id, StaticContext.Cooks.FirstOrDefault(c => c.Rank >= food.Food.Complexity).Id));
+                    }
+
+                    var client = new HttpDataClient(_httpClient);
+                    client.SendOrder(orderConfirmation);
 
                     foreach (var food in StaticContext.FoodsToPrepare)
                     {
@@ -74,11 +100,12 @@ namespace Kitchen.Controllers
                         {
                             cook = StaticContext.Cooks.FirstOrDefault(c => c.IsAvailable && c.Rank >= food.Food.Complexity);
                         }
+
                         food.IsPreparing = true;
                         cook.StartPreparing(food);
                         StaticContext.FoodsToPrepare.Remove(food);
                         Console.WriteLine($"--> Finish preparing order: {order.Id}");
-                        if (StaticContext.FoodsToPrepare.Count / 2 == 0)
+                        if (StaticContext.FoodsToPrepare.All(f => f.OrderId != order.Id))
                         {
                             return new SendOrderDto
                             {
@@ -94,7 +121,7 @@ namespace Kitchen.Controllers
                     }
 
 
-                    
+
                     return new SendOrderDto();
                 };
             }
@@ -102,5 +129,30 @@ namespace Kitchen.Controllers
             return new SendOrderDto();
         }
         #endregion
+    }
+
+    public class HttpDataClient
+    {
+        private readonly HttpClient _httpClient;
+
+        public HttpDataClient(
+            HttpClient httpClient)
+        {
+            _httpClient = httpClient;
+        }
+
+        public async Task<HttpResponseMessage> SendOrder(OrderDetails order)
+        {
+            var httpContent = new StringContent(
+                JsonConvert.SerializeObject(order, new JsonSerializerSettings()
+                {
+                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                }),
+                Encoding.UTF8,
+                "application/json");
+            Console.WriteLine($"--> Send orderconfirmation{order.Id}");
+            var url = $"https://localhost:3001/api/Serve/Distribution";
+            return await _httpClient.PostAsync(url, httpContent);
+        }
     }
 }
